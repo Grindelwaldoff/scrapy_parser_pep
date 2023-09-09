@@ -18,8 +18,9 @@ class PepSpider(scrapy.Spider):
             'section#numerical-index'
         )
         pep_rows = (
-            index_by_category_section.css('td')
-            + numerical_index_section.css('td')
+            index_by_category_section.css('td') + numerical_index_section.css(
+                'td'
+            )
         )
         for pep_row_index in range(0, len(pep_rows), 4):
             # table_status = pep_rows[pep_row_index].css('abbr::text').get()
