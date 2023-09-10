@@ -3,44 +3,36 @@ from urllib.parse import urljoin
 import scrapy
 
 from pep_parse.items import PepParseItem
+from pep_parse.settings import MAIN_DOMAIN
 
 
 class PepSpider(scrapy.Spider):
     name = 'pep'
-    allowed_domains = ['peps.python.org']
-    start_urls = ['https://peps.python.org/']
+    allowed_domains = [MAIN_DOMAIN]
+    start_urls = [f'https://{MAIN_DOMAIN}/']
 
     def parse(self, response):
-        index_by_category_section = response.css(
-            'section#index-by_category'
-        )
-        numerical_index_section = response.css(
-            'section#numerical-index'
-        )
-        pep_rows = (
-            index_by_category_section.css('td') + numerical_index_section.css(
-                'td'
-            )
-        )
-        for pep_row_index in range(0, len(pep_rows), 4):
-            # table_status = pep_rows[pep_row_index].css('abbr::text').get()
+        pep_rows = response.xpath(
+            '//@href[starts-with(., "pep")]'
+        )[1:-2]
+        for pep_row_index in range(0, len(pep_rows)):
             pep_link = urljoin(
                 response._url,
-                pep_rows[pep_row_index + 1].css('a::attr(href)').extract()[0]
+                pep_rows[pep_row_index].get()
             )
             yield response.follow(pep_link, callback=self.parse_pep)
 
     def parse_pep(self, response):
-        title = response.css('h1.page-title::text').get().split()
+        title = response.css('h1.page-title::text').get().split('–')
         for dt in response.xpath('//dl/dt'):
-            if dt.css('::text').get() == 'Status':
+            if 'Status' in dt.get():
                 status = dt.xpath(
                     'string(following-sibling::dd[1])'
                 ).extract()[0]
         yield PepParseItem(
             {
-                'name': ' '.join(title[3:]),
-                'number': title[1],
+                'name': title[1],
+                'number': title[0].split()[1],
                 'status': status,
             }
         )

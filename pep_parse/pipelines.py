@@ -21,7 +21,6 @@ class PepParsePipeline:
 
     def process_item(self, item, spider):
         self.statuses[item['status']] += 1
-        print(item['status'])
         return item
 
     def close_spider(self, spider):
