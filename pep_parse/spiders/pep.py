@@ -13,8 +13,8 @@ class PepSpider(scrapy.Spider):
 
     def parse(self, response):
         pep_rows = response.xpath(
-            '//@href[starts-with(., "pep")]'
-        )[1:-2]
+            '//td[position()=2]/a/@href[starts-with(., "pep")]'
+        )
         for pep_row_index in range(0, len(pep_rows)):
             pep_link = urljoin(
                 response._url,
@@ -23,16 +23,15 @@ class PepSpider(scrapy.Spider):
             yield response.follow(pep_link, callback=self.parse_pep)
 
     def parse_pep(self, response):
-        title = response.css('h1.page-title::text').get().split('–')
-        for dt in response.xpath('//dl/dt'):
-            if 'Status' in dt.get():
-                status = dt.xpath(
-                    'string(following-sibling::dd[1])'
-                ).extract()[0]
+        pep_number, name = response.css('h1.page-title::text').get().split('–')
+        status = response.xpath(
+            'string(//dt[contains(text(), "Status")]/following-sibling::dd[1])'
+        ).get()
         yield PepParseItem(
             {
-                'name': title[1],
-                'number': title[0].split()[1],
+                'name': name,
+                # забираем только номер из заголовка на странице вида: PEP xxxx
+                'number': pep_number.split()[1],
                 'status': status,
             }
         )
